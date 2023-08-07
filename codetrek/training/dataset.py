@@ -8,10 +8,10 @@ from collections import namedtuple
 from sklearn.metrics import roc_auc_score
 from torch.utils.data import Dataset, DataLoader
 
-from codetrek.constants import UNK
-from codetrek.training.walker import Walker
-from codetrek.preprocessing.graph import GraphBuilder
-from codetrek.training.dict import ProgDict
+from ..constants import UNK
+from .walker import Walker
+from ..preprocessing.graph import GraphBuilder
+from .dict import ProgDict
 
 RawData = namedtuple('RawData', ['node_idx', 'edge_idx', 'node_val_idx', 'label'])
 

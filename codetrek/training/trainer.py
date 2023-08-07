@@ -5,7 +5,7 @@ import torch.optim as optim
 
 from tqdm import tqdm
 
-from codetrek.training.dataset import AnchorNotFoundError
+from .dataset import AnchorNotFoundError
 
 def train_loop(args, device, prog_dict, model, fn_db_train, fn_db_dev, fn_eval, nn_arg_constructor):
   model = model.to(device)

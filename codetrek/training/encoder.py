@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from codetrek.training.utils import InitUtils, gnn_spmm
+from .utils import InitUtils, gnn_spmm
 
 class LearnedPositionalEncoder(nn.Module):
   def __init__(self, d_model, dropout, max_len=50):

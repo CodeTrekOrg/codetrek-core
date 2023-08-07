@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from codetrek.training.encoder import WalkSetEmbed
+from .encoder import WalkSetEmbed
 
 class BinaryNet(WalkSetEmbed):
   def __init__(self, args, prog_dict):

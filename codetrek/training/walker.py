@@ -4,22 +4,6 @@ class Walker:
   def __init__(self, graph, anchors, biases):
     self.graph = graph
     self.biases = biases
-
-    #{
-    #    "schema_contracts": 0.1,
-    #    "__unknown__": 0.1,
-    #    "schema_ercs": 10,
-    #    "schema_conditional_expressions": 10,
-    #    "schema_assignment_operations": 10,
-    #    "schema_binary_operations": 10,
-    #    "schema_call_expressions": 10,
-    #    "schema_identifiers": 20,
-    #    "schema_local_variables": 20,
-    #    "schema_solidity_variables": 20,
-    #    "schema_state_variables": 30,
-    #    "schema_tuple_expressions": 10,
-    #    "schema_unary_operations": 10
-    #}
     self.anchors = anchors
 
   def pretty_print(self, walks):

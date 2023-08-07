@@ -4,7 +4,7 @@ import pickle
 
 from tqdm import tqdm
 
-from codetrek.constants import UNK, TOK_PAD
+from ..constants import UNK, TOK_PAD
 
 def get_or_add(type_dict, key):
     if key in type_dict:

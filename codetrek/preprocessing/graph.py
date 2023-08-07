@@ -1,4 +1,3 @@
-import json
 import pickle
 import networkx as nx
 
@@ -51,7 +50,7 @@ class GraphBuilder:
 
         for attr1 in row1:
           for attr2 in row2:
-            if row1[attr1] == row2[attr2] and self._is_id(row1[attr1]) and self._is_id(row2[attr2]):
+            if row1[attr1] == row2[attr2] and self._is_id(attr1, row1[attr1]) and self._is_id(attr1, row2[attr2]):
               if (attr1 == 'id' and attr2 != 'id') or (attr1 != 'id' and attr2 == 'id'):
                 self.graph.add_edge(node1, node2, label="_".join([self.graph.nodes[node1]['label'], attr1, self.graph.nodes[node2]['label'], attr2]))
 
