@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
+import numpy as np
+
 class InitUtils:
   @staticmethod
   def _uniform(t):

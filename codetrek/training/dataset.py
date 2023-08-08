@@ -97,12 +97,13 @@ def make_mat_from_raw(walks, node_types, edge_types):
   return node_mat, edge_mat
 
 class AbstractWalkDataset(Dataset):
-  def __init__(self, args, prog_dict, data_dir, phase):
+  def __init__(self, args, prog_dict, data_dir, biases, phase):
     super(AbstractWalkDataset, self).__init__()
     self.args = args
     self.prog_dict = prog_dict
+    self.biases = biases
     self.phase = phase
-    
+
   def get_train_loader(self, args):
     return DataLoader(self,
                       batch_size=args.batch_size,
@@ -115,7 +116,7 @@ class AbstractWalkDataset(Dataset):
                       batch_size=args.batch_size,
                       shuffle=False,
                       drop_last=False,
-                      collate_fn=collate_raw_data,)
+                      collate_fn=collate_raw_data)
 
   def get_item_from_rawfile(self, walker, label):
     walks = walker.generate_walks(num_walks=self.args.num_walks, num_steps=self.args.num_steps)
@@ -128,11 +129,11 @@ class AbstractWalkDataset(Dataset):
         for tok in ProgDict.tokenize(step['values']):
           node_val_coo.append((step_idx//2, walk_idx, get_or_unk(self.prog_dict.token_vocab , tok)))
     node_val_coo = (np.array(node_val_coo, dtype=np.int32), len(self.prog_dict.token_vocab))
-    return RawData(node_mat, edge_mat, node_val_coo, 0 if label == 'SECURE' else 1)
+    return RawData(node_mat, edge_mat, node_val_coo, 0 if label == 'NEGATIVE' else 1)
 
 class OnlineWalkDataset(AbstractWalkDataset):
-  def __init__(self, args, prog_dict, data_dir, phase):
-    super(OnlineWalkDataset, self).__init__(args, prog_dict, data_dir, phase)
+  def __init__(self, args, prog_dict, data_dir, biases, phase):
+    super(OnlineWalkDataset, self).__init__(args, prog_dict, data_dir, biases, phase)
     self.samples = []
     for item in os.listdir(os.path.join(data_dir, phase)):
       if item.startswith('sample_') and item.endswith('.json'):
@@ -161,8 +162,8 @@ class OnlineWalkDataset(AbstractWalkDataset):
     else:
       anchor = sample_info['anchor']
 
-    walker = Walker(sample_graph, [anchor])
-    label = 'SECURE' if len(sample_info['findings']) == 0 else 'VULNERABLE'
+    walker = Walker(sample_graph, [anchor], self.biases)
+    label = sample_info['label']
     return self.get_item_from_rawfile(walker, label)
   
   def __len__(self):
