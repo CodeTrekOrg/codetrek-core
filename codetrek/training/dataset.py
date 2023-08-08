@@ -171,7 +171,10 @@ class OnlineWalkDataset(AbstractWalkDataset):
 
 def eval_path_based_nn_args(nn_args, device):
   node_idx, edge_idx, node_val_mat, label = nn_args
-  node_val_mat = torch.sparse_coo_tensor(*node_val_mat).to(device)
+  if device.startswith('mps'):
+    node_val_mat = torch.sparse_coo_tensor(*node_val_mat).to_dense().to(device)
+  else:
+    node_val_mat = torch.sparse_coo_tensor(*node_val_mat).to(device)
   edge_idx = edge_idx.to(device)
   nn_args = {'node_idx': node_idx.to(device),
                'edge_idx': edge_idx,
@@ -181,7 +184,10 @@ def eval_path_based_nn_args(nn_args, device):
 def path_based_arg_constructor(nn_args, device):
   node_idx, edge_idx, node_val_mat, label = nn_args
   if node_val_mat is not None:
-    node_val_mat = torch.sparse_coo_tensor(*node_val_mat).to(device)
+    if device.startswith('mps'):
+      node_val_mat = torch.sparse_coo_tensor(*node_val_mat).to_dense().to(device)
+    else:
+      node_val_mat = torch.sparse_coo_tensor(*node_val_mat).to(device)
   if edge_idx is not None:
     edge_idx = edge_idx.to(device)
     
