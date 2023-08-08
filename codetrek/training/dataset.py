@@ -219,7 +219,8 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
     f.write('true_labels: ' + str(true_labels) + '\n')
   pbar.close()
 
-  print('Had to silently skip', silent_skips, 'samples.')
+  if silent_skips > 0:
+    print('Had to silently skip', silent_skips, 'samples.')
 
   if phase in ['dev', 'train', 'eval']:
     roc_auc = roc_auc_score(true_labels, pred_probs)
