@@ -3,6 +3,7 @@ import argparse
 cmd_opt = argparse.ArgumentParser(description='Argparser', allow_abbrev=False)
 
 cmd_opt.add_argument('--data_dir', default='tmp/data', help='data root directory')
+cmd_opt.add_argument('--split', default='80:10', help='train:dev split percentage of the samples. test percentage will be 100-train-dev.')
 cmd_opt.add_argument('--dict', default='dict.pkl', help='name of the dictionary file')
 cmd_opt.add_argument('--seed', default=19260813, type=int, help='seed')
 cmd_opt.add_argument('--embed_dim', default=256, type=int, help='embed size')
