@@ -1,6 +1,7 @@
 import os
 import torch
 import json
+import random, time
 import numpy as np
 from tqdm import tqdm
 
@@ -205,6 +206,11 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
   silent_skips = 0
   print("Running eval on", phase, "set with", len(eval_loader), "batches.")
   pbar = tqdm(total=len(eval_loader))
+  random.seed(int(time.time()))
+  run_id = random.randint(1000,9999)
+  print("Run ID:", run_id)
+  with open(f'eval_report_{phase}_{run_id}.txt', 'a') as f:
+    f.write('TRUE_LABEL,PRED_LABEL,PRED_PROB,SAMPLE'+'\n')
   while True:
     try:
       nn_args = next(eval_iter)
@@ -220,19 +226,32 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
       true_labels += label.data.numpy().flatten().tolist()
 
     pbar.update(1)
-  with open('eval_report.txt', 'w') as f:
-    f.write('pred_probs: ' + str(pred_probs) + '\n')
-    f.write('true_labels: ' + str(true_labels) + '\n')
   pbar.close()
 
   if silent_skips > 0:
     print('Had to silently skip', silent_skips, 'samples.')
 
-  if phase in ['dev', 'train', 'eval']:
+  if phase in ['dev', 'train', 'test']:
     roc_auc = roc_auc_score(true_labels, pred_probs)
     pred_label = np.where(np.array(pred_probs) > 0.5, 1, 0)
     acc = np.mean(pred_label == np.array(true_labels, dtype=pred_label.dtype))
     print("ROC=", roc_auc, ", ACC=", acc)
+    fn = 0
+    fp = 0
+    with open(f'eval_report_{phase}_{run_id}.txt', 'a') as f:
+      for idx in range(len(pred_label)):
+        f.write(f'{true_labels[idx]},{pred_label[idx]},{pred_probs[idx]},?\n')
+        if true_labels[idx] == 0 and pred_label[idx] == 1:
+          fp += 1
+        if true_labels[idx] == 1 and pred_label[idx] == 0:
+          fn += 1
+      f.write('===========================\n')
+      f.write(f'ROC AUC: {roc_auc}\n')
+      f.write(f'    ACC: {acc}\n')
+      f.write(f'     FP: {fp/len(pred_label)} ({fp} out of {len(pred_label)})\n')
+      f.write(f'     FN: {fn/len(pred_label)} ({fn} out of {len(pred_label)})\n')
+
+    print("saved the evaluation result in:", f'eval_report_{phase}_{run_id}.txt')
     return roc_auc
   else:
     pred_label = np.where(np.array(pred_probs) > 0.5, 1, 0)

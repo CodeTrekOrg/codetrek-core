@@ -16,11 +16,15 @@ def get_or_add(type_dict, key):
 class ProgDict:
   def __init__(self, data_dir, dict_name):
     with open(os.path.join(data_dir, dict_name), 'rb') as f:
-      d = pickle.load(f)
+      try:
+        d = pickle.load(f)
+      except ValueError:
+        import pickle5
+        d = pickle5.load(f)
     self.node_types = d['node_types']
     self.edge_types = d['edge_types']
     self.token_vocab = d['token_vocab']
-    
+
   def node_idx(self, node_name):
     if node_name in self.node_types:
       return self.node_types[node_name]
