@@ -15,7 +15,7 @@ cmd_opt.add_argument('--device', type=int, default=-1, help='-1: cpu; 0: cuda/mp
 cmd_opt.add_argument('--grad_clip', default=5, type=float, help='gradient clip')
 cmd_opt.add_argument('--transformer_layers', default=3, type=int, help='# transformer layers')
 cmd_opt.add_argument('--dim_feedforward', default=512, type=int, help='embed size')
-cmd_opt.add_argument('--num_epochs', default=1000, type=int, help='num epochs')
+cmd_opt.add_argument('--num_epochs', default=200, type=int, help='num epochs')
 cmd_opt.add_argument('--batch_size', default=8, type=int, help='batch size')
 cmd_opt.add_argument('--learning_rate', default=1e-6, type=float, help='learning rate')
 cmd_opt.add_argument('--iter_per_epoch', default=300, type=int, help='num iterations per epoch')
