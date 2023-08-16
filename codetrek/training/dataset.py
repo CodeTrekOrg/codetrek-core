@@ -238,20 +238,21 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
     print("ROC=", roc_auc, ", ACC=", acc)
     fn = 0
     fp = 0
-    with open(f'eval_report_{phase}_{run_id}.txt', 'a') as f:
-      for idx in range(len(pred_label)):
-        f.write(f'{true_labels[idx]},{pred_label[idx]},{pred_probs[idx]},?\n')
-        if true_labels[idx] == 0 and pred_label[idx] == 1:
-          fp += 1
-        if true_labels[idx] == 1 and pred_label[idx] == 0:
-          fn += 1
-      f.write('===========================\n')
-      f.write(f'ROC AUC: {roc_auc}\n')
-      f.write(f'    ACC: {acc}\n')
-      f.write(f'     FP: {fp/len(pred_label)} ({fp} out of {len(pred_label)})\n')
-      f.write(f'     FN: {fn/len(pred_label)} ({fn} out of {len(pred_label)})\n')
+    if phase == "test":
+      with open(f'eval_report_{phase}_{run_id}.txt', 'a') as f:
+        for idx in range(len(pred_label)):
+          f.write(f'{true_labels[idx]},{pred_label[idx]},{pred_probs[idx]},?\n')
+          if true_labels[idx] == 0 and pred_label[idx] == 1:
+            fp += 1
+          if true_labels[idx] == 1 and pred_label[idx] == 0:
+            fn += 1
+        f.write('===========================\n')
+        f.write(f'ROC AUC: {roc_auc}\n')
+        f.write(f'    ACC: {acc}\n')
+        f.write(f'     FP: {fp/len(pred_label)} ({fp} out of {len(pred_label)})\n')
+        f.write(f'     FN: {fn/len(pred_label)} ({fn} out of {len(pred_label)})\n')
 
-    print("saved the evaluation result in:", f'eval_report_{phase}_{run_id}.txt')
+      print("saved the evaluation result in:", f'eval_report_{phase}_{run_id}.txt')
     return roc_auc
   else:
     pred_label = np.where(np.array(pred_probs) > 0.5, 1, 0)
