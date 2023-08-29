@@ -6,21 +6,22 @@ import torch.optim as optim
 from tqdm import tqdm
 
 from .dataset import AnchorNotFoundError
+from ..configs import cmd_args
 
-def train_loop(args, device, prog_dict, model, fn_db_train, fn_db_dev, fn_eval, nn_arg_constructor):
+def train_loop(device, model, fn_db_train, fn_db_dev, fn_eval, nn_arg_constructor):
   model = model.to(device)
-  train_loader = fn_db_train.get_train_loader(args)
-  dev_loader = fn_db_dev.get_test_loader(args)
+  train_loader = fn_db_train.get_train_loader()
+  dev_loader = fn_db_dev.get_test_loader()
 
-  optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+  optimizer = optim.Adam(model.parameters(), lr=cmd_args.learning_rate)
 
   train_iter = iter(train_loader)
   best_metric = -1
   print("Training in progress...")
-  for epoch in range(args.num_epochs):
+  for epoch in range(cmd_args.num_epochs):
     print("Epoch", epoch)
     model.train()
-    for _ in tqdm(range(args.iter_per_epoch)):
+    for _ in tqdm(range(cmd_args.iter_per_epoch)):
       try:
         nn_args = next(train_iter)
       except StopIteration:
@@ -37,8 +38,8 @@ def train_loop(args, device, prog_dict, model, fn_db_train, fn_db_dev, fn_eval, 
       loss = model(**nn_args)
       loss.backward()
 
-      if args.grad_clip > 0:
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.grad_clip)
+      if cmd_args.grad_clip > 0:
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=cmd_args.grad_clip)
 
       optimizer.step()
 
@@ -46,5 +47,5 @@ def train_loop(args, device, prog_dict, model, fn_db_train, fn_db_dev, fn_eval, 
       auc = fn_eval(model, 'dev', dev_loader, device)
       if auc > best_metric:
         best_metric = auc
-        torch.save(model.state_dict(), os.path.join(args.data_dir, args.model_dump))
+        torch.save(model.state_dict(), os.path.join(cmd_args.data_dir, cmd_args.model_dump))
         print("Saved a better model.")

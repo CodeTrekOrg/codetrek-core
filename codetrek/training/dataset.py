@@ -1,4 +1,4 @@
-import os
+import os, shutil
 import torch
 import json
 import random, time
@@ -9,10 +9,11 @@ from collections import namedtuple
 from sklearn.metrics import roc_auc_score
 from torch.utils.data import Dataset, DataLoader
 
-from ..constants import UNK
-from .walker import Walker
-from ..preprocessing.graph import GraphBuilder
 from .dict import ProgDict
+from .walker import Walker
+from ..constants import UNK
+from ..configs import cmd_args
+from ..preprocessing.graph import GraphBuilder
 
 RawData = namedtuple('RawData', ['node_idx', 'edge_idx', 'node_val_idx', 'label'])
 
@@ -98,29 +99,36 @@ def make_mat_from_raw(walks, node_types, edge_types):
   return node_mat, edge_mat
 
 class AbstractWalkDataset(Dataset):
-  def __init__(self, args, prog_dict, data_dir, biases, phase):
+  def __init__(self, prog_dict, biases, phase):
     super(AbstractWalkDataset, self).__init__()
-    self.args = args
     self.prog_dict = prog_dict
     self.biases = biases
     self.phase = phase
+    if cmd_args.desc_gen:
+      shutil.rmtree(f'{cmd_args.data_dir}/.walks', ignore_errors=True)
+      os.mkdir(f'{cmd_args.data_dir}/.walks')
 
-  def get_train_loader(self, args):
+  def get_train_loader(self):
     return DataLoader(self,
-                      batch_size=args.batch_size,
+                      batch_size=cmd_args.batch_size,
                       shuffle=True,
                       drop_last=True,
                       collate_fn=collate_raw_data)
 
-  def get_test_loader(self, args):
+  def get_test_loader(self):
     return DataLoader(self,
-                      batch_size=args.batch_size,
+                      batch_size=cmd_args.batch_size,
                       shuffle=False,
                       drop_last=False,
                       collate_fn=collate_raw_data)
 
   def get_item_from_rawfile(self, walker, label):
-    walks = walker.generate_walks(num_walks=self.args.num_walks, num_steps=self.args.num_steps)
+    walks = walker.generate_walks(num_walks=cmd_args.num_walks, num_steps=cmd_args.num_steps)
+    if cmd_args.desc_gen:
+      # save the walks for description generation
+      with open(f'{cmd_args.data_dir}/.walks/raw_walks.jsonl', 'a') as f:
+        f.write(json.dumps(walks))
+        f.write('\n')
     node_mat, edge_mat = make_mat_from_raw(walks, self.prog_dict.node_types, self.prog_dict.edge_types)
 
     node_val_coo = []
@@ -133,10 +141,10 @@ class AbstractWalkDataset(Dataset):
     return RawData(node_mat, edge_mat, node_val_coo, 0 if label == 'NEGATIVE' else 1)
 
 class OnlineWalkDataset(AbstractWalkDataset):
-  def __init__(self, args, prog_dict, data_dir, biases, phase):
-    super(OnlineWalkDataset, self).__init__(args, prog_dict, data_dir, biases, phase)
+  def __init__(self, prog_dict, biases, phase):
+    super(OnlineWalkDataset, self).__init__(prog_dict, biases, phase)
     self.samples = []
-    for item in os.listdir(os.path.join(data_dir, phase)):
+    for item in os.listdir(os.path.join(cmd_args.data_dir, phase)):
       if item.startswith('sample_') and item.endswith('.json'):
         self.samples.append(item)
     if phase == 'eval':
@@ -145,9 +153,9 @@ class OnlineWalkDataset(AbstractWalkDataset):
           f.write(sample + '\n')
 
   def __getitem__(self, idx):
-    with open(os.path.join(self.args.data_dir, self.phase, self.samples[idx]), 'r') as f:
+    with open(os.path.join(cmd_args.data_dir, self.phase, self.samples[idx]), 'r') as f:
       sample_info = json.load(f)
-      graph_path = os.path.join(self.args.data_dir, self.phase, self.samples[idx]).replace('/sample_', '/graph_')
+      graph_path = os.path.join(cmd_args.data_dir, self.phase, self.samples[idx]).replace('/sample_', '/graph_')
       graph_path = graph_path[:graph_path.rfind('.sol_')] + '.sol.pkl'
       sample_graph = GraphBuilder.load(graph_path)
     anchor = None
@@ -238,7 +246,7 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
     print("ROC=", roc_auc, ", ACC=", acc)
     fn = 0
     fp = 0
-    if phase == "test":
+    if phase not in ["train", "dev"]:
       with open(f'eval_report_{phase}_{run_id}.txt', 'a') as f:
         for idx in range(len(pred_label)):
           f.write(f'{true_labels[idx]},{pred_label[idx]},{pred_probs[idx]},?\n')
