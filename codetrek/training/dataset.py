@@ -105,8 +105,8 @@ class AbstractWalkDataset(Dataset):
     self.biases = biases
     self.phase = phase
     if cmd_args.desc_gen:
-      shutil.rmtree(f'{cmd_args.data_dir}/.walks', ignore_errors=True)
-      os.mkdir(f'{cmd_args.data_dir}/.walks')
+      shutil.rmtree(f'{cmd_args.output_dir}/.walks', ignore_errors=True)
+      os.mkdir(f'{cmd_args.output_dir}/.walks')
 
   def get_train_loader(self):
     return DataLoader(self,
@@ -148,7 +148,7 @@ class OnlineWalkDataset(AbstractWalkDataset):
       if item.startswith('stub_') and item.endswith('.json'):
         self.samples.append(item)
     if phase in ['predict', 'test']:
-      with open('eval_samples.txt', 'w') as f:
+      with open(f'{cmd_args.output_dir}/eval_samples.txt', 'w') as f:
         for sample in self.samples:
           f.write(sample + '\n')
 
@@ -263,12 +263,12 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
         f.write(f'    ACC: {acc}\n')
         f.write(f'     FP: {fp/len(pred_label)} ({fp} out of {len(pred_label)})\n')
         f.write(f'     FN: {fn/len(pred_label)} ({fn} out of {len(pred_label)})\n')
-      print("saved the evaluation result in:", f'eval_report_{phase}_{run_id}.txt')
+      print("saved the evaluation result in:", f'{cmd_args.output_dir}/eval_report_{phase}_{run_id}.txt')
     return roc_auc
   else:
     pred_label = np.where(np.array(pred_probs) > 0.5, 1, 0)
     with open(f'{cmd_args.output_dir}/result_report_{phase}_{run_id}.txt', 'a') as f:
       for idx in range(len(pred_label)):
         f.write(f'{pred_label[idx]},{pred_probs[idx]},?\n')
-    print("saved the prediction result in:", f'result_report_{phase}_{run_id}.txt')
+    print("saved the prediction result in:", f'{cmd_args.output_dir}/result_report_{phase}_{run_id}.txt')
     return None
