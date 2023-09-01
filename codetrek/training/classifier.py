@@ -14,7 +14,7 @@ class BinaryNet(WalkSetEmbed):
     prog_repr = super(BinaryNet, self).forward(node_idx, edge_idx, node_val_mat)
     if cmd_args.desc_gen:
       prog_repr, sorted_walks = prog_repr
-      with open(f'{cmd_args.data_dir}/.walks/sorted_walks.pkl', 'ab') as f:
+      with open(f'{cmd_args.output_dir}/.walks/sorted_walks.pkl', 'ab') as f:
         pickle.dump(sorted_walks, f)
     logits = self.out_classifier(prog_repr)
     prob = torch.sigmoid(logits)

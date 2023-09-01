@@ -126,7 +126,7 @@ class AbstractWalkDataset(Dataset):
     walks = walker.generate_walks(num_walks=cmd_args.num_walks, num_steps=cmd_args.num_steps)
     if cmd_args.desc_gen:
       # save the walks for description generation
-      with open(f'{cmd_args.data_dir}/.walks/raw_walks.jsonl', 'a') as f:
+      with open(f'{cmd_args.output_dir}/.walks/raw_walks.jsonl', 'a') as f:
         f.write(json.dumps(walks))
         f.write('\n')
     node_mat, edge_mat = make_mat_from_raw(walks, self.prog_dict.node_types, self.prog_dict.edge_types)
@@ -145,9 +145,9 @@ class OnlineWalkDataset(AbstractWalkDataset):
     super(OnlineWalkDataset, self).__init__(prog_dict, biases, phase)
     self.samples = []
     for item in os.listdir(os.path.join(cmd_args.data_dir, phase)):
-      if item.startswith('sample_') and item.endswith('.json'):
+      if item.startswith('stub_') and item.endswith('.json'):
         self.samples.append(item)
-    if phase == 'eval':
+    if phase in ['predict', 'test']:
       with open('eval_samples.txt', 'w') as f:
         for sample in self.samples:
           f.write(sample + '\n')
@@ -155,7 +155,7 @@ class OnlineWalkDataset(AbstractWalkDataset):
   def __getitem__(self, idx):
     with open(os.path.join(cmd_args.data_dir, self.phase, self.samples[idx]), 'r') as f:
       sample_info = json.load(f)
-      graph_path = os.path.join(cmd_args.data_dir, self.phase, self.samples[idx]).replace('/sample_', '/graph_')
+      graph_path = os.path.join(cmd_args.data_dir, self.phase, self.samples[idx]).replace('/stub_', '/graph_')
       graph_path = graph_path[:graph_path.rfind('.sol_')] + '.sol.pkl'
       sample_graph = GraphBuilder.load(graph_path)
     anchor = None
@@ -165,7 +165,7 @@ class OnlineWalkDataset(AbstractWalkDataset):
           if node[1]['raw_values']['name'] == sample_info['function']:
             anchor = node[0]
       if anchor is None:
-        with open('silent_skips.txt', 'a') as f:
+        with open(f'{cmd_args.output_dir}/silent_skips.txt', 'a') as f:
           f.write(self.samples[idx] + '\n')
         raise AnchorNotFoundError
     else:
@@ -217,8 +217,12 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
   random.seed(int(time.time()))
   run_id = random.randint(1000,9999)
   print("Run ID:", run_id)
-  with open(f'eval_report_{phase}_{run_id}.txt', 'a') as f:
-    f.write('TRUE_LABEL,PRED_LABEL,PRED_PROB,SAMPLE'+'\n')
+  if phase in ['test', 'eval']:
+    with open(f'{cmd_args.output_dir}/eval_report_{phase}_{run_id}.txt', 'a') as f:
+      f.write('TRUE_LABEL,PRED_LABEL,PRED_PROB,SAMPLE'+'\n')
+  if phase == 'predict':
+    with open(f'{cmd_args.output_dir}/result_report_{phase}_{run_id}.txt', 'a') as f:
+      f.write('PRED_LABEL,PRED_PROB,SAMPLE'+'\n')
   while True:
     try:
       nn_args = next(eval_iter)
@@ -247,7 +251,7 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
     fn = 0
     fp = 0
     if phase not in ["train", "dev"]:
-      with open(f'eval_report_{phase}_{run_id}.txt', 'a') as f:
+      with open(f'{cmd_args.output_dir}/eval_report_{phase}_{run_id}.txt', 'a') as f:
         for idx in range(len(pred_label)):
           f.write(f'{true_labels[idx]},{pred_label[idx]},{pred_probs[idx]},?\n')
           if true_labels[idx] == 0 and pred_label[idx] == 1:
@@ -259,10 +263,12 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
         f.write(f'    ACC: {acc}\n')
         f.write(f'     FP: {fp/len(pred_label)} ({fp} out of {len(pred_label)})\n')
         f.write(f'     FN: {fn/len(pred_label)} ({fn} out of {len(pred_label)})\n')
-
       print("saved the evaluation result in:", f'eval_report_{phase}_{run_id}.txt')
     return roc_auc
   else:
     pred_label = np.where(np.array(pred_probs) > 0.5, 1, 0)
-    print("PRED_LABEL:",pred_label,"\nTRUE_LABEL:",true_labels)
+    with open(f'{cmd_args.output_dir}/result_report_{phase}_{run_id}.txt', 'a') as f:
+      for idx in range(len(pred_label)):
+        f.write(f'{pred_label[idx]},{pred_probs[idx]},?\n')
+    print("saved the prediction result in:", f'result_report_{phase}_{run_id}.txt')
     return None
