@@ -271,4 +271,4 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
       for idx in range(len(pred_label)):
         f.write(f'{pred_label[idx]},{pred_probs[idx]},?\n')
     print("saved the prediction result in:", f'{cmd_args.output_dir}/result_report_{phase}_{run_id}.txt')
-    return None
+    return run_id
