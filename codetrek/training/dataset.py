@@ -155,8 +155,8 @@ class OnlineWalkDataset(AbstractWalkDataset):
   def __getitem__(self, idx):
     with open(os.path.join(cmd_args.data_dir, self.phase, self.samples[idx]), 'r') as f:
       sample_info = json.load(f)
-      graph_path = os.path.join(cmd_args.data_dir, self.phase, self.samples[idx]).replace('/stub_', '/graph_')
-      graph_path = graph_path[:graph_path.rfind('.sol_')] + '.sol.pkl'
+      project_id = self.samples[idx].split('_')[1]
+      graph_path = os.path.join(cmd_args.data_dir, self.phase, 'graph_' + project_id + '.pkl')
       sample_graph = GraphBuilder.load(graph_path)
     anchor = None
     if sample_info['anchor'] not in sample_graph.nodes:
