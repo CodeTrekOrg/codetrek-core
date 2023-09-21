@@ -220,9 +220,6 @@ def binary_eval_dataset(model, phase, eval_loader, device, fn_parse_eval_nn_args
   if phase in ['test', 'eval']:
     with open(f'{cmd_args.output_dir}/eval_report_{phase}_{run_id}.txt', 'a') as f:
       f.write('TRUE_LABEL,PRED_LABEL,PRED_PROB,SAMPLE'+'\n')
-  if phase == 'predict':
-    with open(f'{cmd_args.output_dir}/result_report_{phase}_{run_id}.txt', 'a') as f:
-      f.write('PRED_LABEL,PRED_PROB,SAMPLE'+'\n')
   while True:
     try:
       nn_args = next(eval_iter)
