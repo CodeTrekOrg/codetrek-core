@@ -104,7 +104,7 @@ class AbstractWalkDataset(Dataset):
     self.prog_dict = prog_dict
     self.biases = biases
     self.phase = phase
-    if cmd_args.desc_gen:
+    if cmd_args.save_walks:
       shutil.rmtree(f'{cmd_args.output_dir}/.walks', ignore_errors=True)
       os.mkdir(f'{cmd_args.output_dir}/.walks')
 
@@ -124,7 +124,7 @@ class AbstractWalkDataset(Dataset):
 
   def get_item_from_rawfile(self, walker, label):
     walks = walker.generate_walks(num_walks=cmd_args.num_walks, num_steps=cmd_args.num_steps)
-    if cmd_args.desc_gen:
+    if cmd_args.save_walks:
       # save the walks for description generation
       with open(f'{cmd_args.output_dir}/.walks/raw_walks.jsonl', 'a') as f:
         f.write(json.dumps(walks))

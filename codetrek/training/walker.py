@@ -23,34 +23,30 @@ class Walker:
     print("==============")
 
   def generate_walks(self, num_walks, num_steps):
-    walks = []
-    for anchor in self.anchors:
-      walks += self._generate_walks(anchor, num_walks//len(self.anchors), num_steps)
+    walks = [self._generate_walks(anchor, num_walks // len(self.anchors), num_steps) for anchor in self.anchors]
+    walks = [walk for sublist in walks for walk in sublist]
     if len(walks) > num_walks:
       walks = walks[:num_walks]
     else:
       last_walk = walks[-1]
-      for _ in range(num_walks - len(walks)):
-        walks.append(last_walk)
+      walks.extend([last_walk] * (num_walks - len(walks)))
     return walks
 
   def _sample_node(self, nodes):
-    weights = []
-    for node in nodes:
-      weights.append(self.biases[self.graph.nodes[node]['label']] if self.graph.nodes[node]['label'] in self.biases else 1)
-    return random.choices(nodes, weights, k=1)[0]
+    return random.choices(nodes, [self.biases.get(self.graph.nodes[node]['label'], 1) for node in nodes], k=1)[0]
 
-  def _postprocess_walks(self, walks, num_walks):
+  def _postprocess_walks(self, walks):
     # add edge information to the walks
     for walk_idx in range(len(walks)):
+      this_walk = walks[walk_idx]
       with_edges = []
-      for step in range(len(walks[walk_idx]) - 1):
-        node1 = self.graph.nodes[walks[walk_idx][step]]
-        node2 = self.graph.nodes[walks[walk_idx][step+1]]
-        with_edges.append(node1)
-        with_edges.append(self.graph.get_edge_data(walks[walk_idx][step],walks[walk_idx][step+1]))
-        if step == len(walks[walk_idx]) - 2:
-          with_edges.append(node2)
+      for step in range(len(this_walk) - 1):
+        curr_step = this_walk[step]
+        next_step = this_walk[step+1]
+        with_edges.append(self.graph.nodes[curr_step])
+        with_edges.append(self.graph.get_edge_data(curr_step, next_step))
+        if step == len(this_walk) - 2:
+          with_edges.append(self.graph.nodes[next_step])
       walks[walk_idx] = with_edges
     return walks
 
@@ -76,4 +72,4 @@ class Walker:
         break
       iter += 1
 
-    return self._postprocess_walks(walks, num_walks)
+    return self._postprocess_walks(walks)
