@@ -14,8 +14,8 @@ def get_or_add(type_dict, key):
     return val
 
 class ProgDict:
-  def __init__(self, data_dir, dict_name):
-    with open(os.path.join(data_dir, dict_name), 'rb') as f:
+  def __init__(self, dict_dir):
+    with open(os.path.join(dict_dir, 'dict.pkl'), 'rb') as f:
       try:
         d = pickle.load(f)
       except ValueError:
@@ -40,7 +40,7 @@ class ProgDict:
     return re.split(r'\W+|_', s)
 
   @staticmethod
-  def build_dict(data_dir, dict_name, phases=['train', 'dev', 'test']):
+  def build_dict(input_data_dir, output_dict_dir, phases=['train', 'dev', 'test']):
     print("building the dictionary...")
     node_types = {}
     edge_types = {}
@@ -54,10 +54,10 @@ class ProgDict:
       get_or_add(token_vocab, key)
 
     for phase in phases:
-      files = os.listdir(os.path.join(data_dir, phase))
+      files = os.listdir(os.path.join(input_data_dir, phase))
       for fname in tqdm(files):
         if not fname.startswith("graph_"): continue
-        with open(os.path.join(data_dir, phase, fname), 'rb') as f:
+        with open(os.path.join(input_data_dir, phase, fname), 'rb') as f:
           g = pickle.load(f)
 
         for node in g.nodes:
@@ -68,8 +68,10 @@ class ProgDict:
 
         for edge in g.edges:
           get_or_add(edge_types, g.edges[edge]['label'])
-          
-    with open(os.path.join(data_dir, dict_name), 'wb') as f:
+
+    if not os.path.exists(output_dict_dir):
+      os.makedirs(output_dict_dir)
+    with open(os.path.join(output_dict_dir, 'dict.pkl'), 'wb') as f:
       d = {
         'node_types': node_types,
         'edge_types': edge_types,
@@ -77,7 +79,7 @@ class ProgDict:
       }
       pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
       
-      print("dictionary saved in", os.path.join(data_dir, dict_name), '\nsummary:')
+      print("dictionary saved in", os.path.join(output_dict_dir, 'dict.pkl'), '\nsummary:')
       print('  #node types', len(node_types))
       print('  #edge types', len(edge_types))
       print('  #tokens', len(token_vocab))

@@ -72,7 +72,7 @@ class ProgramDeepset(nn.Module):
     walk_hidden = self.mlp(walk_repr)
     prog_repr, max_idx = torch.max(walk_hidden, dim=0)
 
-    if cmd_args.save_walks:
+    if cmd_args.phase == 'predict':
       counts_per_row = torch.zeros(walk_hidden.shape[1], walk_hidden.shape[0])
       for item in torch.arange(walk_hidden.shape[0]):
           counts_per_row[:, item] = torch.sum((max_idx == item), dim=1)
@@ -83,21 +83,21 @@ class ProgramDeepset(nn.Module):
 
 
 class WalkSetEmbed(nn.Module):
-  def __init__(self, prog_dict):
+  def __init__(self, prog_dict, embed_dim, transformer_layers, dim_feedforward, nhead, dropout):
     super(WalkSetEmbed, self).__init__()
-    self.tok_encoding = TokenEncoder(prog_dict, cmd_args.embed_dim, cmd_args.dropout)
-    self.walk_encoding = WalkEncoder(cmd_args.embed_dim, cmd_args.nhead, cmd_args.transformer_layers, cmd_args.dim_feedforward, cmd_args.dropout)
-    self.prob_encoding = ProgramDeepset(cmd_args.embed_dim, cmd_args.dropout)
+    self.tok_encoding = TokenEncoder(prog_dict, embed_dim, dropout)
+    self.walk_encoding = WalkEncoder(embed_dim, nhead, transformer_layers, dim_feedforward, dropout)
+    self.prob_encoding = ProgramDeepset(embed_dim, dropout)
 
   def forward(self, node_idx, edge_idx, node_val_mat):
     seq_tok_embed = self.tok_encoding(node_idx, edge_idx, node_val_mat)
     walk_repr, attn_weights = self.walk_encoding(seq_tok_embed)
-    if cmd_args.save_walks:
+    if cmd_args.phase == 'predict':
       prog_repr, sorted_walks = self.prob_encoding(walk_repr)
     else:
       prog_repr = self.prob_encoding(walk_repr)
 
-    if cmd_args.save_walks:
+    if cmd_args.phase == 'predict':
       nodes_in_walk = (seq_tok_embed.shape[0]+1)//3
       selected_walks = []
       attn_of_interest = attn_weights[0].reshape(seq_tok_embed.shape[1], seq_tok_embed.shape[2],

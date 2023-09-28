@@ -1,9 +1,8 @@
 import random
-from ..configs import cmd_args
 
 class Walker:
-  def __init__(self, graph, anchors, biases):
-    random.seed(cmd_args.seed)
+  def __init__(self, graph, anchors, biases, seed):
+    random.seed(seed)
     self.graph = graph
     self.biases = biases
     self.anchors = anchors

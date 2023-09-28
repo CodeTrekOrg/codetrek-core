@@ -6,13 +6,13 @@ from .encoder import WalkSetEmbed
 from ..configs import cmd_args
 
 class BinaryNet(WalkSetEmbed):
-  def __init__(self, prog_dict):
-    super(BinaryNet, self).__init__(prog_dict)
-    self.out_classifier = nn.Linear(cmd_args.embed_dim, 1)
+  def __init__(self, prog_dict, embed_dim, transformer_layers, dim_feedforward, nhead, dropout):
+    super(BinaryNet, self).__init__(prog_dict, embed_dim, transformer_layers, dim_feedforward, nhead, dropout)
+    self.out_classifier = nn.Linear(embed_dim, 1)
 
   def forward(self, node_idx, edge_idx, *, node_val_mat=None, label=None):
     prog_repr = super(BinaryNet, self).forward(node_idx, edge_idx, node_val_mat)
-    if cmd_args.save_walks:
+    if cmd_args.phase == 'predict':
       prog_repr, sorted_walks = prog_repr
       with open(f'{cmd_args.output_dir}/.walks/sorted_walks.pkl', 'ab') as f:
         pickle.dump(sorted_walks, f)

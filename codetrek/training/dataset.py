@@ -99,32 +99,36 @@ def make_mat_from_raw(walks, node_types, edge_types):
   return node_mat, edge_mat
 
 class AbstractWalkDataset(Dataset):
-  def __init__(self, prog_dict, biases, phase):
+  def __init__(self, prog_dict, biases, phase, hparams):
     super(AbstractWalkDataset, self).__init__()
     self.prog_dict = prog_dict
     self.biases = biases
     self.phase = phase
-    if cmd_args.save_walks:
+    self.batch_size = hparams['batch_size']
+    self.num_walks = hparams['num_walks']
+    self.num_steps = hparams['num_steps']
+
+    if cmd_args.phase == 'predict':
       shutil.rmtree(f'{cmd_args.output_dir}/.walks', ignore_errors=True)
       os.mkdir(f'{cmd_args.output_dir}/.walks')
 
   def get_train_loader(self):
     return DataLoader(self,
-                      batch_size=cmd_args.batch_size,
+                      batch_size=self.batch_size,
                       shuffle=True,
                       drop_last=True,
                       collate_fn=collate_raw_data)
 
   def get_test_loader(self):
     return DataLoader(self,
-                      batch_size=cmd_args.batch_size,
+                      batch_size=self.batch_size,
                       shuffle=False,
                       drop_last=False,
                       collate_fn=collate_raw_data)
 
   def get_item_from_rawfile(self, walker, label):
-    walks = walker.generate_walks(num_walks=cmd_args.num_walks, num_steps=cmd_args.num_steps)
-    if cmd_args.save_walks:
+    walks = walker.generate_walks(num_walks=self.num_walks, num_steps=self.num_steps)
+    if cmd_args.phase == 'predict':
       # save the walks for description generation
       with open(f'{cmd_args.output_dir}/.walks/raw_walks.jsonl', 'a') as f:
         f.write(json.dumps(walks))
@@ -141,8 +145,8 @@ class AbstractWalkDataset(Dataset):
     return RawData(node_mat, edge_mat, node_val_coo, 0 if label == 'NEGATIVE' else 1)
 
 class OnlineWalkDataset(AbstractWalkDataset):
-  def __init__(self, prog_dict, biases, phase):
-    super(OnlineWalkDataset, self).__init__(prog_dict, biases, phase)
+  def __init__(self, prog_dict, biases, phase, hparams):
+    super(OnlineWalkDataset, self).__init__(prog_dict, biases, phase, hparams)
     self.samples = []
     for item in os.listdir(os.path.join(cmd_args.data_dir, phase)):
       if item.startswith('stub_') and item.endswith('.json'):
@@ -151,6 +155,7 @@ class OnlineWalkDataset(AbstractWalkDataset):
       with open(f'{cmd_args.output_dir}/eval_samples.txt', 'w') as f:
         for sample in self.samples:
           f.write(sample + '\n')
+    self.seed = hparams['seed']
 
   def __getitem__(self, idx):
     with open(os.path.join(cmd_args.data_dir, self.phase, self.samples[idx]), 'r') as f:
@@ -165,13 +170,11 @@ class OnlineWalkDataset(AbstractWalkDataset):
           if node[1]['raw_values']['name'] == sample_info['function']:
             anchor = node[0]
       if anchor is None:
-        with open(f'{cmd_args.output_dir}/silent_skips.txt', 'a') as f:
-          f.write(self.samples[idx] + '\n')
         raise AnchorNotFoundError
     else:
       anchor = sample_info['anchor']
 
-    walker = Walker(sample_graph, [anchor], self.biases)
+    walker = Walker(sample_graph, [anchor], self.biases, self.seed)
     label = sample_info['label']
     return self.get_item_from_rawfile(walker, label)
   
